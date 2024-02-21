@@ -17,7 +17,7 @@ class Author(models.Model):
 
 class NewsStory(models.Model):
     categories = [("pol", "Politics"), ("art", "Art"), ("tech", "Technologies"), ("trivia", "Trivial")]
-    regions = [("uk", ("United Kingdom"), ("eu", "European Union"), ("w", "World"))]
+    regions = [("uk", "United Kingdom"), ("eu", "European Union"), ("w", "World")]
     id = models.AutoField(primary_key=True)
     headline = models.CharField(max_length=64)
     category = models.CharField(max_length=30, choices=categories)
