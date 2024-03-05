@@ -8,6 +8,7 @@ class Author(models.Model):
     username = models.CharField(max_length=30, unique=True)
     password = models.CharField(max_length=128) #store hashed password
 
+    #maybe better to hash using the django user form library
     def save(self, *args, **kwargs):
         #create the hashed_password and pass it to the database
         to_hash = self.name + self.username + self.password
