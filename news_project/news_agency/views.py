@@ -85,6 +85,7 @@ def LogOut(request):
 #============================================================
 #POST A STORY
 @csrf_exempt
+@login_required # TODO: implement this log in and delete the inner one and teste it.
 def PostAStory(request):
     """
     API endpoint to post a story.
