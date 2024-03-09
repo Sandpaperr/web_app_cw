@@ -1,9 +1,10 @@
 import requests
 import json
 url = "http://127.0.0.1:8000/api/login/"
-
+session = requests.Session()
+session.headers.update({'User-Agent': "login and post a story"})
 data = {"username": "gerardo", "password": "Acquarola99!"}
-response = requests.post(url, data=data, headers={'Content-Type': 'application/x-www-form-urlencoded'})
+response = session.post(url, data=data, headers={'Content-Type': 'application/x-www-form-urlencoded'})
 print(response.text)
 
 # Create a dictionary representing your data
@@ -19,5 +20,5 @@ json_payload = json.dumps(data)
 
 url = "http://127.0.0.1:8000/api/stories/"
 headers = {'Content-Type': 'application/json'}
-response = requests.post(url, data=json_payload, headers=headers)
+response = session.post(url, data=json_payload, headers=headers)
 print(response.text)

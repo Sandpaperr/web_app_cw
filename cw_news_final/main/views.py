@@ -2,9 +2,8 @@ from django.shortcuts import render
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import authenticate, login
-from models import NewsStory
+from .models import NewsStory, Author
 import json
-from .models import NewsStory
 from django.core import serializers
 from django.http import JsonResponse
 
@@ -126,19 +125,62 @@ def PostAStory(request):
                 try:
                     data = json.loads(request.body)
                 except json.JSONDecodeError:
-                    return HttpResponse("Service Unavailable: invalid JSON payload", status=503, content_type='text/plain')
+                    return HttpResponse("Service Unavailable: invalid JSON payload", status=503, content_type='text/plain')#
                 
+                # check if user is author
+                try:
+                    # TODO: if there are more than one match I assume that we want the first. check with lecturer if it's ok 
+                    author_instance = Author.objects.get(user=request.user).first()
+                except Author.DoesNotExist:
+                    return HttpResponse("Service Unavailable: The user you logged in with is not an author", status=503, content_type="text/plain")
+                
+                # check if all the details exist. 
                 if "headline" not in data or \
                     "category" not in data or \
                     "region" not in data or \
                     "details" not in data:
                     return HttpResponse("Service Unavailable: the payload has one or more missing field", status=503, content_type='text/plain')
                 else:
-                    story = NewsStory(headline=data["headline"], 
-                                      category=data["category"], 
-                                      region=data["region"], 
-                                      details=data["details"], 
-                                      author=request.user)
+                    # Check data types and handle errors separately
+                    headline = data.get("headline")
+                    category = data.get("category")
+                    region = data.get("region")
+                    details = data.get("details")
+
+                    # Validate headline
+                    if not isinstance(headline, str):
+                        return HttpResponse("Service Unavailable: headline must be a string", status=503, content_type='text/plain')
+                    
+                    if len (headline) > 64:
+                        return HttpResponse ("Service Unavailable: headline can be maximun 64 characters", status=503, content_type='text/plain')
+
+                    
+                    # Validate category
+                    if category not in ['pol', 'art', 'tech', 'trivia']:
+                        return HttpResponse("Service Unavailable: Invalid category. Available categories:\npol (Politics)\nart (Art)\ntech (Technology)\ntrivia (Trivial)", status=503, content_type='text/plain')
+
+                    # Validate region
+                    if region not in ['uk', 'eu', 'w']:
+                        return HttpResponse("Service Unavailable: Invalid region. valid regions are:\nuk (United Kingdom)\neu (European Union)\nw (World)", status=503, content_type='text/plain' )
+
+                    if len (category) > 30:
+                        return HttpResponse ("Service Unavailable: category can be maximun 30 characters", status=503, content_type='text/plain')
+                    
+                    if len (region) > 30:
+                        return HttpResponse ("Service Unavailable: region can be maximun 30 characters", status=503, content_type='text/plain')
+                    
+
+                    if not isinstance(details, str):
+                        return HttpResponse("Service Unavailable: details must be a string", status=503, content_type='text/plain')
+                    
+                    if len (details) > 128:
+                        return HttpResponse ("Service Unavailable: details can be maximun 128 characters", status=503, content_type='text/plain')
+
+                    story = NewsStory(headline=headline, 
+                                      category=category, 
+                                      region=region, 
+                                      details=details, 
+                                      author=author_instance)
                     story.save()
                     if story.pk is not None: #primary key
                         return HttpResponse("CREATED", status=201)
@@ -161,6 +203,7 @@ def GetStories(request):
                 date = request.GET.get("story_date")
 
                 # TODO: safety check on variables and check data format
+                # TODO: check for ranges as well (multiple categories and window of time)
                 filter_category = category if category else ""
                 filter_region = region if region else ""
                 filter_date = date if date else ""
@@ -169,9 +212,7 @@ def GetStories(request):
                 
                 if stories is None:
                     return HttpResponse("No stories with these variables", status=404, content_type='text/plain')
-
-                serialized_stories = serializers.serialize('python', stories)
-
+                
                 # Convert the list of dictionaries into JSON format
                 json_stories = []
                 for story in stories:
