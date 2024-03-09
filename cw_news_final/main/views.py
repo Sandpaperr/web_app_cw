@@ -1,12 +1,13 @@
 from django.shortcuts import render
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import authenticate, login
-from django.http import JsonResponse
-from django.contrib.auth.decorators import login_required
+from models import NewsStory
 import json
-from news_agency.models import NewsStory
+from .models import NewsStory
+from django.core import serializers
+from django.http import JsonResponse
+
 
 
 
@@ -34,14 +35,22 @@ def LogIn(request):
         if request.content_type == 'application/x-www-form-urlencoded':
             username = request.POST.get('username')
             password = request.POST.get('password')
+            print(username)
+            print(password)
 
             if username:
                 if password:
-                    user = authenticate(username=username, password=password)
+                    user = authenticate(request=request, username=username, password=password)
+                    print(user)
 
                     if user is not None:
                         login(request, user)
-                        return HttpResponse("Login successful, welcome", status=200, content_type='text/plain')
+                        print(user.is_authenticated)
+                        print(user.is_active)
+                        if user.is_authenticated:
+                            request.session.save()
+                            print(request.session)
+                            return HttpResponse(f"Login successful, welcome {user}", status=200, content_type='text/plain')
                     else:
                         return HttpResponse("Unauthorized", status=401, content_type='text/plain')
                 else:
@@ -85,7 +94,6 @@ def LogOut(request):
 #============================================================
 #POST A STORY
 @csrf_exempt
-@login_required # TODO: implement this log in and delete the inner one and teste it.
 def PostAStory(request):
     """
     API endpoint to post a story.
@@ -111,8 +119,9 @@ def PostAStory(request):
         - If the story cannot be added for any reason (e.g. unauthenticated author), the server should respond with 503
         Service Unavailable with text/plain payload giving reason.    
     """
-    if request.user.is_authenticated:
-        if request.method == "POST":
+    print (request.session)
+    if request.method == "POST":
+        if request.user.is_authenticated:
             if request.content_type == 'application/json':
                 try:
                     data = json.loads(request.body)
@@ -140,12 +149,51 @@ def PostAStory(request):
                 return HttpResponse("Bad request. The payload needs to be application/json", status=503, content_type='text/plain')
 
         else:
-            return HttpResponse("Unsupported request method. Use POST method", status=503, content_type='text/plain')
+            return HttpResponse("Unauthorized. You need to log-in before posting a story", status=503, content_type='text/plain')
     else:
-        return HttpResponse("Unauthorized. You need to log-in before posting a story", status=503, content_type='text/plain')
+        return HttpResponse("Unsupported request method. Use POST method", status=503, content_type='text/plain')
 
 def GetStories(request):
-    return HttpResponse("Get Stories not yet implemented", status=501)
+        if request.method == "GET":
+            if request.content_type == 'application/x-www-form-urlencoded':
+                category = request.GET.get("story_cat")
+                region = request.GET.get("story_region")
+                date = request.GET.get("story_date")
+
+                # TODO: safety check on variables and check data format
+                filter_category = category if category else ""
+                filter_region = region if region else ""
+                filter_date = date if date else ""
+
+                stories = NewsStory.objects.filter(category=filter_category, region=filter_region, date=filter_date)
+                
+                if stories is None:
+                    return HttpResponse("No stories with these variables", status=404, content_type='text/plain')
+
+                serialized_stories = serializers.serialize('python', stories)
+
+                # Convert the list of dictionaries into JSON format
+                json_stories = []
+                for story in stories:
+                    json_stories.append({
+                        'key': str(story.id),  # Assuming the story's unique key is its ID
+                        'headline': story.headline,
+                        'story_cat': story.category,
+                        'story_region': story.region,
+                        'author': story.author.authorname,
+                        'story_date': story.date.strftime("%Y-%m-%d %H:%M:%S"),  # Format the date as string
+                        'story_details': story.details
+                    })
+                # Return the JSON response
+                return JsonResponse({'stories': json_stories}, status=200)
+            else:
+                return HttpResponse("Bad request. the payload has to be of type application/x-www-form-urlencoded", status=400, content_type='text/plain')
+        else:
+            return HttpResponse("Unsupported request method. Use GET method", status=405, content_type='text/plain')
+
+
+
+    #return HttpResponse("Get Stories not yet implemented", status=501)
 
 def DeleteStory(request):
     return HttpResponse("Delete story not yet implemented", status=501)
