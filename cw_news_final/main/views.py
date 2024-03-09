@@ -130,7 +130,7 @@ def PostAStory(request):
                 # check if user is author
                 try:
                     # TODO: if there are more than one match I assume that we want the first. check with lecturer if it's ok 
-                    author_instance = Author.objects.get(user=request.user).first()
+                    author_instance = Author.objects.filter(user=request.user).first()
                 except Author.DoesNotExist:
                     return HttpResponse("Service Unavailable: The user you logged in with is not an author", status=503, content_type="text/plain")
                 
