@@ -210,6 +210,7 @@ def GetStories(request):
 
                 #safety check on category
                 # TODO: ask teacher if we need to give error if not all the variables are given in client
+                # TODO: ask teacher if can use dateutil
                 if category_raw == "*" or category_raw is None:
                     filter_category.append("")
                 else:
