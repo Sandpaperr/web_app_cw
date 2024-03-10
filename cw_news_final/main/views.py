@@ -6,7 +6,11 @@ from .models import NewsStory, Author
 import json
 from django.core import serializers
 from django.http import JsonResponse
+from dateutil.parser import parse
+from django.utils.timezone import now
 
+ALLOWED_CATEGORIES = ['pol', 'art', 'tech', 'trivia']
+ALLOWED_REGIONS = ['uk', 'eu', 'w']
 
 
 
@@ -156,11 +160,11 @@ def PostAStory(request):
 
                     
                     # Validate category
-                    if category not in ['pol', 'art', 'tech', 'trivia']:
+                    if category not in ALLOWED_CATEGORIES:
                         return HttpResponse("Service Unavailable: Invalid category. Available categories:\npol (Politics)\nart (Art)\ntech (Technology)\ntrivia (Trivial)", status=503, content_type='text/plain')
 
                     # Validate region
-                    if region not in ['uk', 'eu', 'w']:
+                    if region not in ALLOWED_REGIONS:
                         return HttpResponse("Service Unavailable: Invalid region. valid regions are:\nuk (United Kingdom)\neu (European Union)\nw (World)", status=503, content_type='text/plain' )
 
                     if len (category) > 30:
@@ -198,17 +202,49 @@ def PostAStory(request):
 def GetStories(request):
         if request.method == "GET":
             if request.content_type == 'application/x-www-form-urlencoded':
-                category = request.GET.get("story_cat")
-                region = request.GET.get("story_region")
-                date = request.GET.get("story_date")
+                category_raw = request.GET.get("story_cat")
+                region_raw = request.GET.get("story_region")
+                date_raw = request.GET.get("story_date")
+                filter_category = []
+                filter_region = []
 
-                # TODO: safety check on variables and check data format
-                # TODO: check for ranges as well (multiple categories and window of time)
-                filter_category = category if category else ""
-                filter_region = region if region else ""
-                filter_date = date if date else ""
+                #safety check on category
+                # TODO: ask teacher if we need to give error if not all the variables are given in client
+                if category_raw == "*" or category_raw is None:
+                    filter_category.append("")
+                else:
+                    for category in ALLOWED_CATEGORIES:
+                        if category in category_raw:
+                            filter_category.append(category)
 
-                stories = NewsStory.objects.filter(category=filter_category, region=filter_region, date=filter_date)
+                if len (filter_category) == 0:
+                    filter_category.append("")
+                
+                if region_raw == "*" or region_raw is None:
+                    region_raw.append("")
+                else:
+                    for region in ALLOWED_REGIONS:
+                        if region in region_raw:
+                            filter_region.append(region)
+
+                if len(filter_region) == 0:
+                    filter_region.append("")
+
+                if date_raw is None or date_raw == "*":
+                    datetime = ""
+                else:
+                    try:
+                        datetime = parse(date_raw, fuzzy=True)
+                    except Exception as e:
+                        return HttpResponse("Date format not compatible. Use either:\nYYYY-MM-DD hh:mm:ss\nhh:mm:ss\nYYYY-MM-DD", status=400, content_type='text/plain')
+
+
+                    if not datetime.date():
+                        datetime = datetime.replace(year=now().year, month=now().month, day=now().day)
+                    if not datetime.time():
+                        datetime = datetime.replace(hour=now().hour, minute=now().minute, second=now().second)
+                        
+                stories = NewsStory.objects.filter(category=filter_category, region=filter_region, date__gte=datetime)
                 
                 if stories is None:
                     return HttpResponse("No stories with these variables", status=404, content_type='text/plain')
