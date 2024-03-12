@@ -272,6 +272,8 @@ def Story(request):
     else:
         return HttpResponse("Unsupported request method. Use POST or GET method", status=503, content_type='text/plain')
 
+
+@csrf_exempt
 def DeleteStory(request, key):
     # TODO: can an author delete a story from another author?
     if request.method == "DELETE":
@@ -279,10 +281,19 @@ def DeleteStory(request, key):
             if key is not None:
                 story_keys = list(NewsStory.objects.values_list('pk', flat=True))
                 if key in story_keys:
-                    pass
                     # if it is present, delete and print out the deleted story
+                    story_to_delete = NewsStory.objects.get(pk=key)
+                    story_to_delete.delete()
+                    return HttpResponse (f"Story with id: {key} has been deleted")
                 else:
-                    return HttpResponse (f"Service Unavailable: No story found with the key: {key}", status=503, content_type='text/plain')
+                    try:
+                        pk_available = list(NewsStory.objects.values_list("pk", flat=True))
+                        primary_keys_str = ", ".join(map(str, pk_available))
+                        return HttpResponse (f"Service Unavailable: No story found with the key: {key}\n Available keys -> {primary_keys_str}", status=503, content_type='text/plain')
+
+
+                    except:
+                        return HttpResponse (f"Service Unavailable: No story found with the key: {key}", status=503, content_type='text/plain')
             else:
                 return HttpResponse ("Service Unavailable: you must pass a key in the url. \n Example: .api/stories/2/\n2 is the key number", status=503, content_type='text/plain')
         else:
