@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login, logout
 from .models import NewsStory, Author
 import json
 from django.core import serializers
@@ -83,7 +83,8 @@ def LogOut(request):
     if request.method == "POST":
         if request.content_type == 'text/plain':
             if not request.body:
-                LogOut(request=request)
+                logout(request)
+                request.session.flush()
                 return HttpResponse("Adios", status=200, content_type='text/plain')
             else:
                 return HttpResponse("Bad request. the payload has to be an empty text/plain", status=400, content_type='text/plain')
@@ -271,5 +272,20 @@ def Story(request):
     else:
         return HttpResponse("Unsupported request method. Use POST or GET method", status=503, content_type='text/plain')
 
-def DeleteStory(request):
-    return HttpResponse("Delete story not yet implemented", status=501)
+def DeleteStory(request, key):
+    # TODO: can an author delete a story from another author?
+    if request.method == "DELETE":
+        if request.user.is_authenticated:
+            if key is not None:
+                story_keys = list(NewsStory.objects.values_list('pk', flat=True))
+                if key in story_keys:
+                    pass
+                    # if it is present, delete and print out the deleted story
+                else:
+                    return HttpResponse (f"Service Unavailable: No story found with the key: {key}", status=503, content_type='text/plain')
+            else:
+                return HttpResponse ("Service Unavailable: you must pass a key in the url. \n Example: .api/stories/2/\n2 is the key number", status=503, content_type='text/plain')
+        else:
+            return HttpResponse("Unauthorized. You need to log-in before deleting a story", status=503, content_type='text/plain')
+    else:
+        return HttpResponse("Unsupported request method. Use DELETE method", status=503, content_type='text/plain')
