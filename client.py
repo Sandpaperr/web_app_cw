@@ -7,18 +7,41 @@ data = {"username": "gerardo", "password": "Acquarola99!"}
 response = session.post(url, data=data, headers={'Content-Type': 'application/x-www-form-urlencoded'})
 print(response.text)
 
-# Create a dictionary representing your data
-data = {
-    "headline": "Sunday Sabroso Academy",
-    "category": "trivia",
-    "region": "uk",
-    "details": "sabroso is back with salsa on 2 in Leeds. Join us"
-}
+# # Create a dictionary representing your data
+# data = {
+#     "headline": "Sunday Sabroso Academy",
+#     "category": "trivia",
+#     "region": "uk",
+#     "details": "sabroso is back with salsa on 2 in Leeds. Join us"
+# }
 
-# Serialize the dictionary to a JSON string
-json_payload = json.dumps(data)
+# # Serialize the dictionary to a JSON string
+# json_payload = json.dumps(data)
+
+# url = "http://127.0.0.1:8000/api/stories/"
+# headers = {'Content-Type': 'application/json'}
+# response = session.post(url, data=json_payload, headers=headers)
+# print(response.text)
+
 
 url = "http://127.0.0.1:8000/api/stories/"
-headers = {'Content-Type': 'application/json'}
-response = session.post(url, data=json_payload, headers=headers)
-print(response.text)
+payload = {
+    'story_cat': '*',
+    'story_region': '*',
+    'story_date': '*'
+}
+headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+response = session.get(url, params=payload, headers=headers)
+# Check if the request was successful (status code 200)
+if response.status_code == 200:
+    # Parse the JSON response
+    data = response.json()
+    
+    # Extract the stories from the JSON response
+    stories = data.get('stories', [])
+    print(len(stories))
+    for story in stories:
+        print()
+        print(story)
+        print()
+

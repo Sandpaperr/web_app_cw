@@ -97,33 +97,32 @@ def LogOut(request):
 #============================================================
 #POST A STORY
 @csrf_exempt
-def PostAStory(request):
-    """
-    API endpoint to post a story.
-
-    Precondition:
-        - the user must be logged in before posting stories.
-
-    Parameters:
-    - client sends a POST request to /api/stories with the following
-    data in an JSON payload with these items:
-        - Story headline ("headline", string)
-        - Story category ("category", string)
-        - Story region ("region", string)
-        - Story details ("details", string)
-    
-    Upon receipt of this request the server checks that the user is logged in, and if they are the story is added to the
-    stories table (with the name of the logged in user) and a time stamp.
-
-
-
-    Returns:
-        - if successful it returns 201 and a payload "CREATED"
-        - If the story cannot be added for any reason (e.g. unauthenticated author), the server should respond with 503
-        Service Unavailable with text/plain payload giving reason.    
-    """
-    print (request.session)
+def Story(request):
     if request.method == "POST":
+        #         """
+        # API endpoint to post a story.
+
+        # Precondition:
+        #     - the user must be logged in before posting stories.
+
+        # Parameters:
+        # - client sends a POST request to /api/stories with the following
+        # data in an JSON payload with these items:
+        #     - Story headline ("headline", string)
+        #     - Story category ("category", string)
+        #     - Story region ("region", string)
+        #     - Story details ("details", string)
+        
+        # Upon receipt of this request the server checks that the user is logged in, and if they are the story is added to the
+        # stories table (with the name of the logged in user) and a time stamp.
+
+
+
+        # Returns:
+        #     - if successful it returns 201 and a payload "CREATED"
+        #     - If the story cannot be added for any reason (e.g. unauthenticated author), the server should respond with 503
+        #     Service Unavailable with text/plain payload giving reason.    
+        # """
         if request.user.is_authenticated:
             if request.content_type == 'application/json':
                 try:
@@ -196,82 +195,81 @@ def PostAStory(request):
 
         else:
             return HttpResponse("Unauthorized. You need to log-in before posting a story", status=503, content_type='text/plain')
-    else:
-        return HttpResponse("Unsupported request method. Use POST method", status=503, content_type='text/plain')
-
-def GetStories(request):
-        if request.method == "GET":
-            if request.content_type == 'application/x-www-form-urlencoded':
+        
+    elif request.method == "GET":
+        if request.content_type == 'application/x-www-form-urlencoded':
+            try:
                 category_raw = request.GET.get("story_cat")
                 region_raw = request.GET.get("story_region")
                 date_raw = request.GET.get("story_date")
-                filter_category = []
-                filter_region = []
+            except:
+                category_raw = None
+                region_raw = None
+                date_raw = None
 
-                #safety check on category
-                # TODO: ask teacher if we need to give error if not all the variables are given in client
-                # TODO: ask teacher if can use dateutil
-                if category_raw == "*" or category_raw is None:
-                    filter_category.append("")
-                else:
-                    for category in ALLOWED_CATEGORIES:
-                        if category in category_raw:
-                            filter_category.append(category)
+            filter_category = []
+            filter_region = []
 
-                if len (filter_category) == 0:
-                    filter_category.append("")
-                
-                if region_raw == "*" or region_raw is None:
-                    region_raw.append("")
-                else:
-                    for region in ALLOWED_REGIONS:
-                        if region in region_raw:
-                            filter_region.append(region)
-
-                if len(filter_region) == 0:
-                    filter_region.append("")
-
-                if date_raw is None or date_raw == "*":
-                    datetime = ""
-                else:
-                    try:
-                        datetime = parse(date_raw, fuzzy=True)
-                    except Exception as e:
-                        return HttpResponse("Date format not compatible. Use either:\nYYYY-MM-DD hh:mm:ss\nhh:mm:ss\nYYYY-MM-DD", status=400, content_type='text/plain')
-
-
-                    if not datetime.date():
-                        datetime = datetime.replace(year=now().year, month=now().month, day=now().day)
-                    if not datetime.time():
-                        datetime = datetime.replace(hour=now().hour, minute=now().minute, second=now().second)
-                        
-                stories = NewsStory.objects.filter(category=filter_category, region=filter_region, date__gte=datetime)
-                
-                if stories is None:
-                    return HttpResponse("No stories with these variables", status=404, content_type='text/plain')
-                
-                # Convert the list of dictionaries into JSON format
-                json_stories = []
-                for story in stories:
-                    json_stories.append({
-                        'key': str(story.id),  # Assuming the story's unique key is its ID
-                        'headline': story.headline,
-                        'story_cat': story.category,
-                        'story_region': story.region,
-                        'author': story.author.authorname,
-                        'story_date': story.date.strftime("%Y-%m-%d %H:%M:%S"),  # Format the date as string
-                        'story_details': story.details
-                    })
-                # Return the JSON response
-                return JsonResponse({'stories': json_stories}, status=200)
+            #safety check on category
+            # TODO: ask teacher if we need to give error if not all the variables are given in client
+            # TODO: ask teacher if can use dateutil
+            if category_raw == "*" or category_raw is None:
+                filter_category = ALLOWED_CATEGORIES
             else:
-                return HttpResponse("Bad request. the payload has to be of type application/x-www-form-urlencoded", status=400, content_type='text/plain')
+                for category in ALLOWED_CATEGORIES:
+                    if category in category_raw:
+                        filter_category.append(category)
+
+            if len (filter_category) == 0:
+                return HttpResponse("Service Unavailable: Invalid category. Available categories:\npol (Politics)\nart (Art)\ntech (Technology)\ntrivia (Trivial)", status=400, content_type='text/plain')
+            
+            if region_raw == "*" or region_raw is None:
+                filter_region = ALLOWED_REGIONS
+            else:
+                for region in ALLOWED_REGIONS:
+                    if region in region_raw:
+                        filter_region.append(region)
+
+            if len(filter_region) == 0:
+                return HttpResponse("Service Unavailable: Invalid region. valid regions are:\nuk (United Kingdom)\neu (European Union)\nw (World)", status=400, content_type='text/plain' )
+
+            if date_raw is None or date_raw == "*":
+                stories = NewsStory.objects.filter(category__in=filter_category, region__in=filter_region)
+            else:
+                try:
+                    datetime = parse(date_raw, fuzzy=True)
+                except Exception as e:
+                    return HttpResponse("Date format not compatible. Use either:\nYYYY-MM-DD hh:mm:ss\nhh:mm:ss\nYYYY-MM-DD", status=400, content_type='text/plain')
+
+
+                if not datetime.date():
+                    datetime = datetime.replace(year=now().year, month=now().month, day=now().day)
+                if not datetime.time():
+                    datetime = datetime.replace(hour=0, minute=0, second=0)
+                    
+                stories = NewsStory.objects.filter(category__in=filter_category, region__in=filter_region, date__gte=datetime)
+            
+            if stories is None:
+                return HttpResponse("No stories with these variables", status=404, content_type='text/plain')
+            
+            # Convert the list of dictionaries into JSON format
+            json_stories = []
+            for story in stories:
+                json_stories.append({
+                    'key': str(story.id),  # Assuming the story's unique key is its ID
+                    'headline': story.headline,
+                    'story_cat': story.category,
+                    'story_region': story.region,
+                    'author': story.author.authorname,
+                    'story_date': story.date.strftime("%Y-%m-%d %H:%M:%S"),  # Format the date as string
+                    'story_details': story.details
+                })
+            # Return the JSON response
+            return JsonResponse({'stories': json_stories}, status=200)
         else:
-            return HttpResponse("Unsupported request method. Use GET method", status=405, content_type='text/plain')
-
-
-
-    #return HttpResponse("Get Stories not yet implemented", status=501)
+            return HttpResponse("Bad request. the payload has to be of type application/x-www-form-urlencoded", status=400, content_type='text/plain')
+    else:
+        return HttpResponse("Unsupported request method. Use POST or GET method", status=503, content_type='text/plain')
 
 def DeleteStory(request):
     return HttpResponse("Delete story not yet implemented", status=501)
