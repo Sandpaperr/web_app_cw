@@ -38,21 +38,14 @@ def LogIn(request):
         if request.content_type == 'application/x-www-form-urlencoded':
             username = request.POST.get('username')
             password = request.POST.get('password')
-            print(username)
-            print(password)
-
             if username:
                 if password:
                     user = authenticate(request=request, username=username, password=password)
-                    print(user)
 
                     if user is not None:
                         login(request, user)
-                        print(user.is_authenticated)
-                        print(user.is_active)
                         if user.is_authenticated:
                             request.session.save()
-                            print(request.session)
                             return HttpResponse(f"Login successful, welcome {user}", status=200, content_type='text/plain')
                     else:
                         return HttpResponse("Unauthorized", status=401, content_type='text/plain')
@@ -87,7 +80,7 @@ def LogOut(request):
                 request.session.flush()
                 return HttpResponse("Adios", status=200, content_type='text/plain')
             else:
-                return HttpResponse("Bad request. the payload has to be an empty text/plain", status=400, content_type='text/plain')
+                return HttpResponse("Bad request. the payload has to be empty", status=400, content_type='text/plain')
         else:
             return HttpResponse("Bad request. the payload has to be an empty text/plain", status=400, content_type='text/plain')
 
