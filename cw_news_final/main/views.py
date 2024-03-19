@@ -1,10 +1,8 @@
-from django.shortcuts import render
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import authenticate, login, logout
 from .models import NewsStory, Author
 import json
-from django.core import serializers
 from django.http import JsonResponse
 from dateutil.parser import parse
 from django.utils.timezone import now
@@ -75,13 +73,16 @@ def LogOut(request):
     """
     if request.method == "POST":
         if request.content_type == 'text/plain':
-            if not request.body:
-                logout(request)
-                if not request.user.is_authenticated:
-                    request.session.flush()
-                    return HttpResponse("Adios. you're logged out", status=200, content_type='text/plain')
+            if request.user.is_authenticated:
+                if not request.body:
+                    logout(request)
+                    if not request.user.is_authenticated:
+                        request.session.flush()
+                        return HttpResponse("Adios. you're logged out", status=200, content_type='text/plain')
+                else:
+                    return HttpResponse("Bad request. the payload has to be empty", status=400, content_type='text/plain')
             else:
-                return HttpResponse("Bad request. the payload has to be empty", status=400, content_type='text/plain')
+                return HttpResponse("You need to log in before being able to log out", status=400, content_type="text/plain")
         else:
             return HttpResponse("Bad request. the payload has to be an empty text/plain", status=400, content_type='text/plain')
 
