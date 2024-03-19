@@ -16,4 +16,4 @@ Please, use requirements.txt to create a pip environment.
 
 This app has been developed in python 3.10
 
-
+TODO: add instructions for client
