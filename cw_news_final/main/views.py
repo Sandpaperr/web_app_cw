@@ -34,23 +34,31 @@ def LogIn(request):
     """
     if request.method == "POST":
         if request.content_type == 'application/x-www-form-urlencoded':
-            username = request.POST.get('username')
-            password = request.POST.get('password')
-            if username:
-                if password:
-                    user = authenticate(request=request, username=username, password=password)
-
-                    if user is not None:
-                        login(request, user)
-                        if user.is_authenticated:
-                            request.session.save()
-                            return HttpResponse(f"Login successful, welcome {user}", status=200, content_type='text/plain')
-                    else:
-                        return HttpResponse("Unauthorized", status=401, content_type='text/plain')
-                else:
-                    return HttpResponse("password missing or bad request", status=400, content_type='text/plain')
+            # Authorization not required for Log-in but I put it to make sure nothing breaks
+            if request.user.is_authenticated:
+                return HttpResponse("Unauthorized: You are already logged in. Try logging put first", status=401, content_type='text/plain')
             else:
-                return HttpResponse("username missing or bad request", status=400, content_type='text/plain')
+                username = request.POST.get('username')
+                password = request.POST.get('password')
+                if username and not username=="" and not len(username) == 0:
+                    if password and not password=="" and not len(password) == 0:
+
+                        try:
+                            user = authenticate(request=request, username=username, password=password)
+                        except:
+                            return HttpResponse("An Error has occured while creating the user", status=500, content_type='text/plain')
+
+                        if user is not None:
+                            login(request, user)
+                            if user.is_authenticated:
+                                request.session.save()
+                                return HttpResponse(f"Login successful, welcome {user}", status=200, content_type='text/plain')
+                        else:
+                            return HttpResponse("Unauthorized", status=401, content_type='text/plain')
+                    else:
+                        return HttpResponse("password missing or bad request", status=400, content_type='text/plain')
+                else:
+                    return HttpResponse("username missing or bad request", status=400, content_type='text/plain')
         else:
             return HttpResponse("Bad request. the payload has to be of type application/x-www-form-urlencoded", status=400, content_type='text/plain')
     else:
@@ -73,6 +81,7 @@ def LogOut(request):
     """
     if request.method == "POST":
         if request.content_type == 'text/plain':
+            # Authorization not required for Log-out but I put it to make sure nothing breaks 
             if request.user.is_authenticated:
                 if not request.body:
                     logout(request)
