@@ -12,10 +12,6 @@ from django.utils.timezone import now
 ALLOWED_CATEGORIES = ['pol', 'art', 'tech', 'trivia']
 ALLOWED_REGIONS = ['uk', 'eu', 'w']
 
-# TODO: test date as dd/mm/yyyy
-# TODO: no leading slash for apis
-
-
 
 
 
@@ -130,11 +126,15 @@ def Story(request):
                     return HttpResponse("Service Unavailable: invalid JSON payload", status=503, content_type='text/plain')#
                 
                 # check if user is author
+
                 try:
-                    # TODO:use get and handle the errors of no data or too much data 
-                    author_instance = Author.objects.filter(user=request.user).first()
+                    author_instance = Author.objects.get(user=request.user)
                 except Author.DoesNotExist:
                     return HttpResponse("Service Unavailable: The user you logged in with is not an author", status=503, content_type="text/plain")
+
+                except Author.MultipleObjectsReturned:
+                    return HttpResponse("Service Unavailable: there are multiple instances of the author you are logged in with. Contact the customer service", status=503, content_type="text/plain")
+
                 
                 # check if all the details exist. 
                 if "headline" not in data or \
@@ -194,7 +194,31 @@ def Story(request):
 
         else:
             return HttpResponse("Unauthorized. You need to log-in before posting a story", status=503, content_type='text/plain')
-        
+
+
+        #     Get Stories
+        # Service Aim: to get news stories
+
+        # Service Specifications:
+        # The client sends a GET request to /api/stories with the following data in an application/x-www-formurlencoded payload with 3 items:
+        # 1. Story category ("story_cat", string). For any category this should be "*".
+        # 2. Story region ("story_region", string). For any region this should be "*".
+        # 3. Story date ("story_date", string). For any date this should be "*".
+
+        # When the request is received the server retrieves all stories, having the given category and region published at
+        # or after the given date. If the request is processed successfully, the server responds with 200 OK and a list of
+        # stories in a JSON payload (“stories”, array). For each story in the list, the following data must be provided:
+
+        # 1. The story’s unique key (“key”, string)
+        # 2. The story headline ("headline", string)
+        # 3. The story category ("story_cat" , string)
+        # 4. The story region ("story_region", string)
+        # 5. The story author name ("author", string)
+        # 6. The story date ("story_date", string)
+        # 7. The story details ("story_details", string)
+
+        # If no stories are found, the server should respond with 404 status code with text/plain payload giving more
+        # information.   
     elif request.method == "GET":
         if request.content_type == 'application/x-www-form-urlencoded':
             try:
@@ -218,8 +242,6 @@ def Story(request):
             filter_region = []
 
             #safety check on category
-            # TODO: ask teacher if we need to give error if not all the variables are given in client
-            # TODO: ask teacher if can use dateutil
             if category_raw == "*" or category_raw is None or len(category_raw) == 0 or category_raw == "":
                 filter_category = ALLOWED_CATEGORIES
             else:
@@ -286,7 +308,6 @@ def Story(request):
 
 @csrf_exempt
 def DeleteStory(request, key):
-    # TODO: can an author delete a story from another author?
     if request.method == "DELETE":
         if request.user.is_authenticated:
             if key is not None:
