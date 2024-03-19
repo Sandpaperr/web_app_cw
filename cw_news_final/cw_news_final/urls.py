@@ -20,8 +20,8 @@ from main.views import LogIn, LogOut, Story, DeleteStory
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("api/login/", LogIn, name="login"),
-    path("api/logout/", LogOut, name="logout"),
-    path("api/stories/", Story, name="story"),
-    path("api/stories/<int:key>/", DeleteStory, name="delete_story"),
+    path("api/login", LogIn, name="login"),
+    path("api/logout", LogOut, name="logout"),
+    path("api/stories", Story, name="story"),
+    path("api/stories/<int:key>", DeleteStory, name="delete_story"),
 ]

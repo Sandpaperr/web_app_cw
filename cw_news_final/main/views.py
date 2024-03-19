@@ -14,9 +14,6 @@ ALLOWED_REGIONS = ['uk', 'eu', 'w']
 
 # TODO: test date as dd/mm/yyyy
 # TODO: no leading slash for apis
-#TODO: Client is a loop and take args from promt
-#TODO: Use / when interfacing to news aggregator
-# TODO: python anywhere us -> teacher -> ammarsalka
 
 
 
@@ -296,10 +293,23 @@ def DeleteStory(request, key):
                 story_keys = list(NewsStory.objects.values_list('pk', flat=True))
                 if key in story_keys:
                     # if it is present, delete and print out the deleted story
-                    story_to_delete = NewsStory.objects.get(pk=key)
-                    if story_to_delete.author.authorname == request.user:
+                    try:
+                        story_to_delete = NewsStory.objects.get(pk=key)
+                    except:
+                        return HttpResponse("Error while trying to get the story using the key", status=503, content_type="text/plain")
+
+                    # Retrieve the Author instance
+                    try:
+                        authenticated_author = Author.objects.get(user=request.user)
+                    except Author.DoesNotExist:
+                        # Handle the case where there is no associated Author instance for the user
+                        return HttpResponse("No author with your name found", status=503, content_type="text/plain")
+
+                    if story_to_delete.author.authorname == authenticated_author.authorname:
                         story_to_delete.delete()
                         return HttpResponse (f"Story with id: {key} has been deleted")
+                    else:
+                        return HttpResponse("Denied, you are trying to delete stories written by someone else.", status=503, content_type="text/plain")
                 else:
                     try:
                         pk_available = list(NewsStory.objects.values_list("pk", flat=True))

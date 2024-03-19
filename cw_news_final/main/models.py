@@ -4,7 +4,8 @@ from django.contrib.auth.models import User
 
 
 class Author(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE) 
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    # not sure about it but in real life authors sometimes have a nickname
     authorname = models.CharField(max_length=255)
 
     def __str__(self):
