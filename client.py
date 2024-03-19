@@ -49,32 +49,37 @@ url = "http://127.0.0.1:8000/api/stories/"
 payload = {
     'story_cat': '*',
     'story_region': '*',
-    'story_date': '*'
+    'story_date': '',
 }
 headers = {'Content-Type': 'application/x-www-form-urlencoded'}
 response = session.get(url, params=payload, headers=headers)
 # Check if the request was successful (status code 200)
+print(response.status_code)
+print(response.text)
 if response.status_code == 200:
     # Parse the JSON response
     data = response.json()
     
+    
     # Extract the stories from the JSON response
     stories = data.get('stories', [])
+    print(stories)
     for story in stories:
         print()
         print(story)
         print()
 
 
-# Delete
-url = "http://127.0.0.1:8000/api/stories/"
-key = 5
-url_with_key =  url + str(key)
-response = session.delete(url=url_with_key)
-print(response.text)
+# # Delete
+# url = "http://127.0.0.1:8000/api/stories/"
+# key = 5
+# url_with_key =  url + str(key)
+# response = session.delete(url=url_with_key)
+# print(response.text)
 
-for i in range (1, 13):
-    url_with_key = url + str(i)
-    response = session.delete(url=url_with_key)
-    print(response.text)
+# for i in range (1, 13):
+#     url_with_key = url + str(i)
+#     response = session.delete(url=url_with_key)
+#     print(response.text)
+
 

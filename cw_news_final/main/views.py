@@ -12,6 +12,13 @@ from django.utils.timezone import now
 ALLOWED_CATEGORIES = ['pol', 'art', 'tech', 'trivia']
 ALLOWED_REGIONS = ['uk', 'eu', 'w']
 
+# TODO: test date as dd/mm/yyyy
+# TODO: no leading slash for apis
+#TODO: Client is a loop and take args from promt
+#TODO: Use / when interfacing to news aggregator
+# TODO: python anywhere us -> teacher -> ammarsalka
+
+
 
 
 
@@ -77,8 +84,9 @@ def LogOut(request):
         if request.content_type == 'text/plain':
             if not request.body:
                 logout(request)
-                request.session.flush()
-                return HttpResponse("Adios", status=200, content_type='text/plain')
+                if not request.user.is_authenticated:
+                    request.session.flush()
+                    return HttpResponse("Adios. you're logged out", status=200, content_type='text/plain')
             else:
                 return HttpResponse("Bad request. the payload has to be empty", status=400, content_type='text/plain')
         else:
@@ -193,13 +201,21 @@ def Story(request):
     elif request.method == "GET":
         if request.content_type == 'application/x-www-form-urlencoded':
             try:
-                category_raw = request.GET.get("story_cat")
-                region_raw = request.GET.get("story_region")
-                date_raw = request.GET.get("story_date")
+                category_raw = request.GET.get("story_cat", None)
             except:
-                category_raw = None
-                region_raw = None
-                date_raw = None
+                return HttpResponse("Missing story category. Use story_cat. If you don't want to specify it, set it to *", status=400, content_type='text/plain')
+            
+            try:
+                region_raw = request.GET.get("story_region", None)
+            except:
+                return HttpResponse("Missing story region. Use story_region. If you don't want to specify it, set it to *", status=400, content_type='text/plain')
+            try:
+                date_raw = request.GET.get("story_date", None)
+            except:
+                return HttpResponse("Missing date. Use story_date. If you don't want to specify it, set it to *", status=400, content_type='text/plain')
+
+
+            
 
             filter_category = []
             filter_region = []
@@ -207,7 +223,7 @@ def Story(request):
             #safety check on category
             # TODO: ask teacher if we need to give error if not all the variables are given in client
             # TODO: ask teacher if can use dateutil
-            if category_raw == "*" or category_raw is None:
+            if category_raw == "*" or category_raw is None or len(category_raw) == 0 or category_raw == "":
                 filter_category = ALLOWED_CATEGORIES
             else:
                 for category in ALLOWED_CATEGORIES:
@@ -217,7 +233,7 @@ def Story(request):
             if len (filter_category) == 0:
                 return HttpResponse("Service Unavailable: Invalid category. Available categories:\npol (Politics)\nart (Art)\ntech (Technology)\ntrivia (Trivial)", status=400, content_type='text/plain')
             
-            if region_raw == "*" or region_raw is None:
+            if region_raw == "*" or region_raw is None or len(region_raw) == 0 or region_raw == "":
                 filter_region = ALLOWED_REGIONS
             else:
                 for region in ALLOWED_REGIONS:
@@ -227,22 +243,27 @@ def Story(request):
             if len(filter_region) == 0:
                 return HttpResponse("Service Unavailable: Invalid region. valid regions are:\nuk (United Kingdom)\neu (European Union)\nw (World)", status=400, content_type='text/plain' )
 
-            if date_raw is None or date_raw == "*":
+            if date_raw is None or date_raw == "*" or len(date_raw) == 0 or date_raw == "":
                 stories = NewsStory.objects.filter(category__in=filter_category, region__in=filter_region)
             else:
                 try:
                     datetime = parse(date_raw, fuzzy=True)
                 except Exception as e:
-                    return HttpResponse("Date format not compatible. Use either:\nYYYY-MM-DD hh:mm:ss\nhh:mm:ss\nYYYY-MM-DD", status=400, content_type='text/plain')
+                    return HttpResponse("Date format not compatible. Use one of following:\ndd/mm/yyyy\ndd-mm-yyyy ", status=400, content_type='text/plain')
 
 
+                # if only sent partial date
                 if not datetime.date():
                     datetime = datetime.replace(year=now().year, month=now().month, day=now().day)
                 if not datetime.time():
                     datetime = datetime.replace(hour=0, minute=0, second=0)
+                
+                
                     
-                stories = NewsStory.objects.filter(category__in=filter_category, region__in=filter_region, date__gte=datetime)
-            
+                try:
+                    stories = NewsStory.objects.filter(category__in=filter_category, region__in=filter_region, date__gte=datetime)
+                except:
+                    return HttpResponse("something went wrong while filtering the data. Make sure your data is formatted properly")
             if stories is None:
                 return HttpResponse("No stories with these variables", status=404, content_type='text/plain')
             
@@ -255,7 +276,7 @@ def Story(request):
                     'story_cat': story.category,
                     'story_region': story.region,
                     'author': story.author.authorname,
-                    'story_date': story.date.strftime("%Y-%m-%d %H:%M:%S"),  # Format the date as string
+                    'story_date': story.date.strftime(f"%d-%m-%Y"),  # Format the date as string
                     'story_details': story.details
                 })
             # Return the JSON response
@@ -276,8 +297,9 @@ def DeleteStory(request, key):
                 if key in story_keys:
                     # if it is present, delete and print out the deleted story
                     story_to_delete = NewsStory.objects.get(pk=key)
-                    story_to_delete.delete()
-                    return HttpResponse (f"Story with id: {key} has been deleted")
+                    if story_to_delete.author.authorname == request.user:
+                        story_to_delete.delete()
+                        return HttpResponse (f"Story with id: {key} has been deleted")
                 else:
                     try:
                         pk_available = list(NewsStory.objects.values_list("pk", flat=True))
