@@ -133,13 +133,19 @@ class ClientNews():
         # check if logged in already
         # check if url is in list of available url
         if self.logged_in_url is None:
+            #add https if missing and cut everything after .com
             url = self.add_https(possible_url)
             if url in self.available_url:
+                #setting the path
+                log_in_url = url + "/api/login"
+
                 username = input("Username: ")
                 password = input("Password: ")
+
                 self.session.headers.update({'User-Agent': "python"})
                 data = {"username": str(username), "password": str(password)}
-                response = self.session.post(url, data=data, headers={'Content-Type': 'application/x-www-form-urlencoded'})                
+                response = self.session.post(url=log_in_url, data=data, headers={'Content-Type': 'application/x-www-form-urlencoded'})                
+                print(response.text)
                 if response.status_code == 200:
                     self.logged_in_url = url
                     print(f"logged in into {url}. Welcome")
@@ -210,7 +216,11 @@ class ClientNews():
     def add_https(self, url):
         if not url.startswith("https://"):
             url = "https://" + url
-        return url
+        index = url.find('.com')
+        if index != -1:  # If '.com' is found
+            return str(url[:index + 4])
+        else:
+            return None
 
 
 
