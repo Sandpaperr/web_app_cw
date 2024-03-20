@@ -106,6 +106,8 @@ terminal_width, _ = shutil.get_terminal_size()
 URL_LIST = "https://newssites.pythonanywhere.com/api/directory/"
 
 class ClientNews():
+    # =================================================================================
+    #Init
     def __init__(self):
         #initialise session
         self.session = requests.Session()
@@ -126,7 +128,10 @@ class ClientNews():
                 raise AssertionError("Expected a list when receiving data but it's not")
         else:
             raise RuntimeError("Could not get any data from the API. Try later")
-    
+    # =================================================================================
+        
+    # =================================================================================
+    # Log-in
     def login(self, possible_url: str):
 
         #log-in into a news agency
@@ -157,18 +162,68 @@ class ClientNews():
                 print("url not present in the list")
         else:
             print("You need to log out before you can log in into another news agency")
-
-   # TODO: ask if I need to print the response.text 
-    def is_html(self,content):
-        return content.strip().lower().startswith("<!doctype html>")
-        
     
+    # =================================================================================
+    
+    # =================================================================================
+    # Logout
+    def logout(self):
+        if self.logged_in_url:
+            url = self.logged_in_url + "api/logout"
+
+            self.session.headers.update({'User-Agent': "logout"})
+            response = self.session.post(url=url, headers={'Content-Type': 'text/plain'})
+
+            if response.status_code == 200:
+                self.logged_in_url = None
+                print(response.text)
+            else:
+                (f"Error while logging out: {response.status_code}")
+
+        else:
+            print("You need to log in first")
+    # =================================================================================
+   
+    # =================================================================================
+    #Post   
+    def post(self):
+        if self.logged_in_url:
+            url = self.logged_in_url + "/api/stories"
+            headline = input("Headline: ")
+            category = input("Category: ")
+            region = input("Region: ")
+            details = input("Details: ")
+            data = {
+                "headline": headline,
+                "category": category,
+                "region": region,
+                "details": details,
+            }
+
+            # Serialize the dictionary to a JSON string
+            json_payload = json.dumps(data)
+
+            
+            headers = {'Content-Type': 'application/json'}
+            response = self.session.post(url, data=json_payload, headers=headers)
+            if response.status_code == 201:
+                print(response.text)
+            else:
+                print(f"Something went wrong while posting. Status code: {response.status_code}")
+            
+        else:
+            print("You need to log in first")
+    # =================================================================================
+            
+    # =================================================================================
+    # list
     def list(self):
         table_data = []
         fragmented_entries = []
         fragmented_size = len(self.agencies) // 10
 
-        #I tried to print all at once but if I print the agencies at once with the grid and fancy formats, it print only 40 of them
+        #I tried to print all at once but if I print the agencies at once with the grid and 
+        #fancy formats, it print only 40 of them
         #probably the print statement has a limit of how many character it can print at once
         fragmented_entries.append(self.agencies[:fragmented_size])
         fragmented_entries.append(self.agencies[fragmented_size: 2*fragmented_size])
@@ -194,7 +249,10 @@ class ClientNews():
             print()
             table_data = []
             page += 1
-
+    # =================================================================================
+            
+    # =================================================================================
+    # Print Commands
     def print_commands(self):
         print("Available commands:")
         print("-" * 40)
@@ -249,10 +307,10 @@ while True:
 
         
     elif user_prompt == "logout":
-        print("in logout")
+        client.logout()
         
     elif user_prompt == "post":
-        print("in post")
+        client.post()
         
     elif "news " in user_prompt:
         print("in news")
