@@ -2,6 +2,10 @@ import json
 import requests
 import shutil
 from tabulate import tabulate
+from bs4 import BeautifulSoup
+from prettytable import PrettyTable, ALL
+
+
 
 # Get the size of the terminal window
 terminal_width, _ = shutil.get_terminal_size()
@@ -104,13 +108,15 @@ URL_LIST = "https://newssites.pythonanywhere.com/api/directory/"
 class ClientNews():
     def __init__(self):
         #initialise session
-        session = requests.Session()
+        self.session = requests.Session()
         self.available_url = []
+        self.logged_in_url = None
         
         #get the list of all agencies
-        response = session.get(URL_LIST)
+        response = self.session.get(URL_LIST)
         if response.status_code == 200:
             agencies = response.json()
+
             if isinstance(agencies, list):
                 self.agencies = agencies
                 for agency in self.agencies:
@@ -121,35 +127,68 @@ class ClientNews():
         else:
             raise RuntimeError("Could not get any data from the API. Try later")
     
-    def login(self, possible_url: str) -> str:
-        #log-in into a news agency
-        #TODO: can I login in more than one agency at the time
-        if possible_url in self.available_url:
-            username = input("Username: ")
-            password = input("Password: ")
-        #TODO: continue this
-        
+    def login(self, possible_url: str):
 
+        #log-in into a news agency
+        # check if logged in already
+        # check if url is in list of available url
+        if self.logged_in_url is None:
+            url = self.add_https(possible_url)
+            if url in self.available_url:
+                username = input("Username: ")
+                password = input("Password: ")
+                self.session.headers.update({'User-Agent': "python"})
+                data = {"username": str(username), "password": str(password)}
+                response = self.session.post(url, data=data, headers={'Content-Type': 'application/x-www-form-urlencoded'})                
+                if response.status_code == 200:
+                    self.logged_in_url = url
+                    print(f"logged in into {url}. Welcome")
+                    
+                else:
+                    print(f"Can't log in. Status code: {response.status_code}")
+                    # I tried to also print the response.text, but it's an html so I cannot
+            else:
+                print("url not present in the list")
+        else:
+            print("You need to log out before you can log in into another news agency")
+
+   # TODO: ask if I need to print the response.text 
+    def is_html(self,content):
+        return content.strip().lower().startswith("<!doctype html>")
+        
     
     def list(self):
         table_data = []
+        fragmented_entries = []
+        fragmented_size = len(self.agencies) // 10
 
-        for agency in self.agencies:
-            # take the terminal width and calculate the space the grid can occupy
-            # max width per column
-            max_width = (terminal_width - 4) // 3  
+        #I tried to print all at once but if I print the agencies at once with the grid and fancy formats, it print only 40 of them
+        #probably the print statement has a limit of how many character it can print at once
+        fragmented_entries.append(self.agencies[:fragmented_size])
+        fragmented_entries.append(self.agencies[fragmented_size: 2*fragmented_size])
+        fragmented_entries.append(self.agencies[2*fragmented_size: 3*fragmented_size])
+        fragmented_entries.append(self.agencies[3*fragmented_size: 4*fragmented_size])
+        fragmented_entries.append(self.agencies[4*fragmented_size: 5*fragmented_size])
+        fragmented_entries.append(self.agencies[5*fragmented_size: 6*fragmented_size])
+        fragmented_entries.append(self.agencies[6*fragmented_size: 7*fragmented_size])
+        fragmented_entries.append(self.agencies[7*fragmented_size: 8*fragmented_size])
+        fragmented_entries.append(self.agencies[8*fragmented_size: 9*fragmented_size])
+        fragmented_entries.append(self.agencies[9*fragmented_size:])
 
-            # check if agencies names are longer than max_idth. If so, print the remaining next row
-            split_agency_name = [agency["agency_name"][i:i+max_width] for i in range(0, len(agency["agency_name"]), max_width)]
-            agency_name = '\n'.join(split_agency_name)
+        colalign = ["right", "left", "left"]
+        page = 1
+        for frag_agencies in fragmented_entries:
 
-            url = agency["url"][:max_width] if len(agency["url"]) > max_width else agency["url"]
-            agency_code = agency["agency_code"][:max_width] if len(agency["agency_code"]) > max_width else agency["agency_code"]
-            table_data.append([agency_name, url, agency_code])
+            for agency in frag_agencies:
+                table_data.append([agency["agency_name"], agency["url"], agency["agency_code"]])
+            
+            print()
+            print(f"page {page}")
+            print(tabulate(table_data, headers=["Agency Name", "URL", "Agency Code"], tablefmt="heavy_grid", colalign=colalign))
+            print()
+            table_data = []
+            page += 1
 
-        # Print the tabulated data
-        print(tabulate(table_data, headers=["Agency Name", "URL", "Agency Code"], tablefmt="grid"))
-    
     def print_commands(self):
         print("Available commands:")
         print("-" * 40)
@@ -167,6 +206,11 @@ class ClientNews():
         
         for command, description in commands:
             print(f"{command:<30} {description}")
+    
+    def add_https(self, url):
+        if not url.startswith("https://"):
+            url = "https://" + url
+        return url
 
 
 
@@ -184,8 +228,7 @@ while True:
         if len(words) == 2:
             if words[0] == "login":
                 if "pythonanywhere.com" in words[1]:
-                    answer = client.login(words[1])
-                    print(answer)
+                    client.login(words[1])
                 else:
                     print("Only allowed to use url from pythonanywhere.com for this coursework")
             else:
@@ -231,3 +274,16 @@ while True:
     print("use command 'show' to show all the available commands")
 
     
+
+# url = URL_LIST
+
+# # TODO: method for checking and adding "https//"
+
+# data = {"agency_name": "Leandro's News Agency", "url":"https://sc21l2r.pythonanywhere.com", "agency_code": "LER99"}
+# data_j = json.dumps(data)
+# headers = {'Content-Type': 'application/json'}
+# response = requests.post(url=url,data=data_j, headers=headers)
+# if response.status_code == 201:
+#     print("Created, oleeeee")
+# else:
+#     print(response.status_code)
