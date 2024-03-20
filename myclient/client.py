@@ -1,14 +1,11 @@
 import json
 import requests
-import shutil
 from tabulate import tabulate
-from bs4 import BeautifulSoup
-from prettytable import PrettyTable, ALL
+import argparse
 
 
 
-# Get the size of the terminal window
-terminal_width, _ = shutil.get_terminal_size()
+
 
 # #TODO: Use / when interfacing to news aggregator
 # #TODO: Client is a loop and take args from promt
@@ -216,6 +213,28 @@ class ClientNews():
     # =================================================================================
             
     # =================================================================================
+    # News
+    def news(self, raw_flags):
+        if raw_flags:
+            parser = argparse.ArgumentParser(description="Parse news command")
+            parser.add_argument("-id", dest="id", help="ID of the news agency")
+            parser.add_argument("-cat", dest="category", help="Category of the news, can be trivia, tech, art, pol")
+            parser.add_argument("-reg", dest="region", help="Region of the news, can be uk, w, eu")
+            parser.add_argument("-date", dest="date", help="Date of the news in dd/mm/yyyy")
+
+            args = parser.parse_args(raw_flags.split())
+            print("id ", args.id)
+            print("category ", args.category)
+            print("region ", args.region)
+            print("date ", args.date)
+
+        else:
+            pass
+            # no flag so get news from 20 random agencies
+
+
+            
+    # =================================================================================
     # list
     def list(self):
         table_data = []
@@ -313,7 +332,8 @@ while True:
         client.post()
         
     elif "news " in user_prompt:
-        print("in news")
+
+        client.news(user_prompt[5:])
         
     elif user_prompt == "list":
         client.list()
