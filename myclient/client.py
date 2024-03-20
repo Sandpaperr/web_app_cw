@@ -127,6 +127,7 @@ class ClientNews():
         if possible_url in self.available_url:
             username = input("Username: ")
             password = input("Password: ")
+        #TODO: continue this
         
 
     
@@ -183,7 +184,7 @@ while True:
         if len(words) == 2:
             if words[0] == "login":
                 if "pythonanywhere.com" in words[1]:
-                    answer = login(words[1])
+                    answer = client.login(words[1])
                     print(answer)
                 else:
                     print("Only allowed to use url from pythonanywhere.com for this coursework")
