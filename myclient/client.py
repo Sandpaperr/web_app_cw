@@ -110,6 +110,7 @@ class ClientNews():
         self.session = requests.Session()
         self.available_url = []
         self.logged_in_url = None
+        self.available_agencies_code = []
         
         #get the list of all agencies
         response = self.session.get(URL_LIST)
@@ -120,6 +121,7 @@ class ClientNews():
                 self.agencies = agencies
                 for agency in self.agencies:
                     self.available_url.append(agency["url"])
+                    self.aveilable_agencies_code.append(agency["agency_code"])
 
             else:
                 raise AssertionError("Expected a list when receiving data but it's not")
@@ -223,10 +225,38 @@ class ClientNews():
             parser.add_argument("-date", dest="date", help="Date of the news in dd/mm/yyyy")
 
             args = parser.parse_args(raw_flags.split())
-            print("id ", args.id)
-            print("category ", args.category)
-            print("region ", args.region)
-            print("date ", args.date)
+
+
+            id = "*" if args.id is None else args.id
+            category = "*" if args.category is None else args.category
+            region = "*" if args.region is None else args.region
+            date = "*" if args.date is None else args.date
+
+            print("id ", id)
+            print("category ", category)
+            print("region ", region)
+            print("date ", date)
+
+            agencies_to_get_news_from = []
+
+            if id == "*":
+                #pick 20 random agencies name
+                #add them to the list of 
+                pass
+            elif id in self.available_agencies_code:
+                pass
+            else:
+                print("ID not found. Try again")
+            
+            if len(agencies_to_get_news_from) > 0:
+                for agency in agencies_to_get_news_from:
+                    url = self.add_https(agency["url"])
+                    
+            
+
+            
+
+
 
         else:
             pass
@@ -332,7 +362,6 @@ while True:
         client.post()
         
     elif "news " in user_prompt:
-
         client.news(user_prompt[5:])
         
     elif user_prompt == "list":
