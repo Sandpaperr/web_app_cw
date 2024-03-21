@@ -388,18 +388,3 @@ while True:
     
     print()
     print("use command 'show' to show all the available commands")
-
-    
-
-# url = URL_LIST
-
-# # TODO: method for checking and adding "https//"
-
-# data = {"agency_name": "Leandro's News Agency", "url":"https://sc21l2r.pythonanywhere.com", "agency_code": "LER99"}
-# data_j = json.dumps(data)
-# headers = {'Content-Type': 'application/json'}
-# response = requests.post(url=url,data=data_j, headers=headers)
-# if response.status_code == 201:
-#     print("Created, oleeeee")
-# else:
-#     print(response.status_code)
