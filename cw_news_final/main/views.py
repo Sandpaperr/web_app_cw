@@ -276,7 +276,7 @@ def Story(request):
                 stories = NewsStory.objects.filter(category__in=filter_category, region__in=filter_region)
             else:
                 try:
-                    datetime = parse(date_raw, fuzzy=True)
+                    datetime = parse(date_raw, fuzzy=True, dayfirst=True)
                 except Exception as e:
                     return HttpResponse("Date format not compatible. Use one of following:\ndd/mm/yyyy\ndd-mm-yyyy ", status=400, content_type='text/plain')
 
